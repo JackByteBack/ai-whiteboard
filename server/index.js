@@ -7,18 +7,32 @@ const { errorHandler, notFoundHandler } = require("./src/middleware/errorHandler
 const apiRoutes = require("./src/routes");
 const { initSocket } = require("./src/socket");
 const { UPLOAD_DIR } = require("./src/config/uploads");
+const storage = require("./src/config/storage");
 
 const app = express();
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    // comma-separated list; vite falls back to 5174 when 5173 is taken
+    origin: (process.env.CLIENT_URL || "http://localhost:5173,http://localhost:5174").split(","),
     credentials: true,
   })
 );
 app.use(express.json({ limit: "5mb" }));
 
 app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "30d", immutable: true }));
+app.get("/uploads/:key", async (req, res, next) => {
+  if (!storage.isEnabled()) return next();
+  try {
+    const { stream, contentType, contentLength } = await storage.getObject(req.params.key);
+    if (contentType) res.type(contentType);
+    if (contentLength) res.set("Content-Length", String(contentLength));
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    stream.pipe(res);
+  } catch (err) {
+    next();
+  }
+});
 
 app.get("/", (_req, res) =>
   res.json({ name: "AI Whiteboard Notes API", status: "running" })

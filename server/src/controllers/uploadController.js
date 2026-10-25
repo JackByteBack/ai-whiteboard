@@ -20,14 +20,13 @@ const uploadImage = asyncHandler(async (req, res) => {
   const ext = EXT[req.file.mimetype] || "bin";
   const key = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
 
-  let url;
   if (storage.isEnabled()) {
-    url = await storage.putObject(key, req.file.buffer, req.file.mimetype);
+    await storage.putObject(key, req.file.buffer, req.file.mimetype);
   } else {
     fs.writeFileSync(path.join(UPLOAD_DIR, key), req.file.buffer);
-    const base = process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
-    url = `${base}/uploads/${key}`;
   }
+  const base = process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
+  const url = `${base}/uploads/${key}`
 
   res.status(201).json({ url, size: req.file.size, mimetype: req.file.mimetype });
 });

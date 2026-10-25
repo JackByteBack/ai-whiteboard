@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 
 const cfg = {
   endpoint: process.env.NEON_STORAGE_ENDPOINT,
@@ -33,10 +33,15 @@ const deleteObject = async (key) => {
   await client.send(new DeleteObjectCommand({ Bucket: cfg.bucket, Key: key }));
 };
 
+const getObject = async (key) => {
+  const out = await client.send(new GetObjectCommand({ Bucket: cfg.bucket, Key: key }));
+  return { stream: out.Body, contentType: out.ContentType, contentLength: out.ContentLength };
+};
+
 const keyFromUrl = (url) => {
   const marker = `/${cfg.bucket}/`;
   const i = typeof url === "string" ? url.indexOf(marker) : -1;
   return i === -1 ? null : url.slice(i + marker.length).split("?")[0];
 };
 
-module.exports = { isEnabled, putObject, deleteObject, keyFromUrl, bucket: cfg.bucket };
+module.exports = { isEnabled, putObject, deleteObject, getObject, keyFromUrl, bucket: cfg.bucket };
